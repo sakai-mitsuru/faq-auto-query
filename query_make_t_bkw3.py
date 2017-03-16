@@ -42,7 +42,7 @@ class BaseInfo:
 
 	#知識ベース名称(例) (知識ベース作成時に利用)
 	dbname = "ContactFaq_sample"
-		
+
 	#知識ベースID(例)　　知識ベースを作成すると自動的にidが割り振られるので、それを以下に記入する。
 	dbid = "1312"
 
@@ -89,10 +89,10 @@ class RecaiusAuth:
 	baseurl = "https://api.recaius.jp/auth/v2"
 	def __init__(self, service_id, password):
 		url = RecaiusAuth.baseurl + "/tokens"
-		
+
 		# サービスごとのアカウントをここで与える
 		user = {"service_id": service_id, "password": password}
-		
+
 		# 知識探索用
 		#values = {"knowledge_explorer": user}
 
@@ -108,13 +108,13 @@ class RecaiusAuth:
 			the_page = handler.read()
 		result = json.loads(the_page.strip())
 		self.token = result["token"]
-		
+
 		#テスト挿入
 		# six.print_("self.token =" + self.token)
 
 		#six.print_("Expiry sec:", result["expiry_sec"], file=sys.stderr)
 		self.is_closed = False
-		
+
 	def close(self):
 		if not self.is_closed:
 			url = RecaiusAuth.baseurl + "/tokens"
@@ -197,7 +197,7 @@ class KnowledgeDB:
 
 	#入力テキストキーワード(特徴づける語)取得
 	def getKeywords(self,uuName,data):
-		# print("入力テキストキーワード START")
+		# six.print_("入力テキストキーワード START")
 
 		values = {
 			"text":six.b("It happens to be an could")
@@ -211,7 +211,7 @@ class KnowledgeDB:
 		p = "text=" + urlp
 
 		url =  KnowledgeDB.baseurl + "/texts/keywords?" + p
-		# print("url getMorph =" + url)
+		# six.print_("url getMorph =" + url)
 		boundary = "--------Boundary"
 		headers = {
 			"Content-Type": "multipart/form-data; boundary={0}".format(boundary),
@@ -220,15 +220,15 @@ class KnowledgeDB:
 			}
 
 		data = KnowledgeDB.multipart_formdata(values, boundary)
-		# print("START getMorph with MyWebHandler")
+		# six.print_("START getMorph with MyWebHandler")
 
 		data=None
 		with MyWebHandler(url, data, headers, "GET") as handler:
-			# print("START handler.read")
+			# six.print_("START handler.read")
 			the_page = handler.read()
-			# print("END SearchWord")
-			# print("実行結果")
-			print(the_page)
+			# six.print_("END SearchWord")
+			# six.print_("実行結果")
+			# six.print_(the_page)
 			_the_page = json.loads(the_page)
 			return _the_page[u'keywords']
 
@@ -238,12 +238,15 @@ def main():
 	password = BaseInfo.password
 
 	# six.print_("DO START")
-		
+
+	finalKeywordList = []
+
 	with RecaiusAuth(service_id, password) as auth:
-				
+
 		with KnowledgeDB(auth, BaseInfo.uuName) as kdb:
 
-			tag_str_t = "エクセルについて教えて"
+			# tag_str_t = "エクセルについて教えて"
+			tag_str_t = sys.argv[1].decode('shift_jis').encode('utf-8')
 			tag_str_t = re.sub(r"<[^>]*?>","",tag_str_t)
 			tag_str_t = re.sub("\n","",tag_str_t)
 			tag_str_t = re.sub(r"\\\?","",tag_str_t) #\?の変換
@@ -259,20 +262,16 @@ def main():
 			result = kdb.getKeywords(BaseInfo.uuName,tag_str_t)
 			#print result[0],result[1],result[2]
 			if(len(result)==1):
-				data1  =  result[0][u'word'].encode('utf-8')
-				data = data1
+				finalKeywordList.append(result[0][u'word'].encode('utf-8'))
 			elif(len(result)==2):
-				data1  =  result[0][u'word'].encode('utf-8')
-				data2  =  result[1][u'word'].encode('utf-8')
-				data = data1+","+data2
+				finalKeywordList.append(result[0][u'word'].encode('utf-8'))
+				finalKeywordList.append(result[1][u'word'].encode('utf-8'))
 			elif(len(result)>=3):
-				data1  =  result[0][u'word'].encode('utf-8')
-				data2  =  result[1][u'word'].encode('utf-8')
-				data3  =  result[2][u'word'].encode('utf-8')
-				data = data1+","+data2+","+data3
-				data = re.sub(" ","　",data)
+				finalKeywordList.append(result[0][u'word'].encode('utf-8'))
+				finalKeywordList.append(result[1][u'word'].encode('utf-8'))
+				finalKeywordList.append(result[2][u'word'].encode('utf-8'))
 
-			print data
+			six.print_(json.dumps(finalKeywordList,ensure_ascii=False))
 
 if __name__ == "__main__":
 	main()
